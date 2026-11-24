@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BillKit: Invoice Generator</title>
+<meta name="description" content="Create a professional invoice in your browser and download it as a PDF. GST, VAT, UPI QR, any currency. Free, no signup.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body class="app">
+<header class="bar">
+  <a class="logo" href="./"><img src="assets/logo.svg" alt="" width="28" height="28">BillKit</a>
+  <div class="bar-actions">
+    <span id="planBadge" class="pill">Free</span>
+    <button class="btn" id="btnNew" title="Start a new invoice">New</button>
+    <button class="btn" id="btnSave" title="Save to history">Save <span class="pro-tag">PRO</span></button>
+    <button class="btn" id="btnHistory">History <span class="pro-tag">PRO</span></button>
+    <button class="btn primary" id="btnPdf">Download PDF</button>
+    <button class="btn upgrade" id="btnUpgrade">Upgrade</button>
+  </div>
+</header>
+
+<main class="layout">
+  <form class="editor" id="editor" autocomplete="off" onsubmit="return false">
+    <fieldset>
+      <legend>Your business</legend>
+      <div class="logo-row">
+        <div class="logo-drop" id="logoDrop" title="Upload logo (Pro)"><img id="logoImg" alt=""><span id="logoHint">+ Logo<br><small>PRO</small></span></div>
+        <input type="file" id="logoFile" accept="image/*" hidden>
+        <div class="grow">
+          <label>Business / your name<input data-bind="from.name" placeholder="Acme Studio"></label>
+          <label>Email<input data-bind="from.email" placeholder="hello@acme.com"></label>
+        </div>
+      </div>
+      <label>Address<textarea data-bind="from.address" rows="2" placeholder="Street, City, State, PIN"></textarea></label>
+      <div class="row2">
+        <label>Phone<input data-bind="from.phone"></label>
+        <label><span id="fromTaxLabel">Tax ID</span><input data-bind="from.taxId" placeholder="GSTIN / VAT no."></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Bill to</legend>
+      <div class="client-pick" id="clientPick" hidden>
+        <select id="clientSelect"><option value="">Saved clients…</option></select>
+      </div>
+      <label>Client name<input data-bind="to.name" placeholder="Client Pvt Ltd"></label>
+      <label>Address<textarea data-bind="to.address" rows="2"></textarea></label>
+      <div class="row2">
+        <label>Email<input data-bind="to.email"></label>
+        <label><span id="toTaxLabel">Tax ID</span><input data-bind="to.taxId"></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Invoice details</legend>
+      <div class="row2">
+        <label>Invoice #<input data-bind="meta.number"></label>
+        <label>Currency<select data-bind="meta.currency" id="currency"></select></label>
+      </div>
+      <div class="row2">
+        <label>Issue date<input type="date" data-bind="meta.date"></label>
+        <label>Due date<input type="date" data-bind="meta.due"></label>
+      </div>
+      <div class="row2">
+        <label>Tax
+          <select data-bind="taxMode">
+            <option value="none">No tax</option>
+            <option value="gst">GST (India)</option>
+            <option value="simple">VAT / Sales tax</option>
+          </select>
+        </label>
+        <label class="gst-only">GST type
+          <select data-bind="gstType">
+            <option value="intra">CGST + SGST (same state)</option>
+            <option value="inter">IGST (other state)</option>
+          </select>
+        </label>
+        <label class="simple-only">Tax name<input data-bind="taxLabel" placeholder="VAT"></label>
+      </div>
+      <label class="gst-only">Place of supply<input data-bind="meta.pos" placeholder="e.g. Karnataka (29)"></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Items</legend>
+      <div id="items"></div>
+      <button type="button" class="btn small" id="addItem">+ Add item</button>
+      <div class="row2 mt">
+        <label>Discount<input type="number" step="any" min="0" data-bind="discount" data-num></label>
+        <label>Discount type<select data-bind="discountType"><option value="flat">Amount</option><option value="pct">%</option></select></label>
+      </div>
+      <label>Shipping / other charges<input type="number" step="any" min="0" data-bind="shipping" data-num></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Payment</legend>
+      <div class="row2">
+        <label>UPI ID <small>(adds a scan-to-pay QR for INR)</small><input data-bind="upi" placeholder="name@okhdfcbank"></label>
+        <label>Payee name<input data-bind="upiName" placeholder="As on your bank account"></label>
+      </div>
+      <label>Bank details / payment instructions<textarea data-bind="bank" rows="3" placeholder="A/C: 1234567890&#10;IFSC: HDFC0001234&#10;PayPal: you@mail.com"></textarea></label>
+      <label>Notes<textarea data-bind="notes" rows="2" placeholder="Thank you for your business!"></textarea></label>
+      <label>Terms<textarea data-bind="terms" rows="2" placeholder="Payment due within 15 days."></textarea></label>
+    </fieldset>
+
+    <fieldset class="design">
+      <legend>Design <span class="pro-tag">PRO</span></legend>
+      <div class="templates" id="templates">
+        <button type="button" data-tpl="classic">Classic</button>
+        <button type="button" data-tpl="modern">Modern</button>
+        <button type="button" data-tpl="minimal">Minimal</button>
+        <button type="button" data-tpl="bold">Bold</button>
+      </div>
+      <div class="swatches" id="swatches"></div>
+    </fieldset>
+    <p class="fine">Everything stays in this browser. Nothing is uploaded.</p>
+  </form>
+
+  <section class="preview-wrap">
+    <div class="paper" id="paper"></div>
+  </section>
+</main>
+
+<div class="modal" id="upgradeModal" role="dialog" aria-modal="true">
+  <div class="box">
+    <button class="x" data-close>&times;</button>
+    <span class="pill">BillKit Pro</span>
+    <h3 id="upTitle">Make every invoice look like yours</h3>
+    <p class="muted">One payment, yours for life. <b id="upPrice"></b> <span id="upPriceNote" class="muted"></span></p>
+    <ul class="checks">
+      <li>No "Made with BillKit" footer on your PDFs</li>
+      <li>Your logo and brand colour</li>
+      <li>4 invoice templates</li>
+      <li>Saved invoice history and saved clients</li>
+      <li>Auto-numbering, duplicate past invoices</li>
+      <li>CSV export for your accountant, JSON backup</li>
+    </ul>
+    <a class="btn primary lg block" id="buyBtn" target="_blank" rel="noopener">Buy Pro</a>
+    <hr>
+    <p class="muted small">Already bought? Paste the license key from your receipt email.</p>
+    <div class="row-inline">
+      <input id="licenseInput" placeholder="XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX">
+      <button class="btn" id="activateBtn">Activate</button>
+    </div>
+    <div class="msg" id="licenseMsg"></div>
+  </div>
+</div>
+
+<div class="modal" id="historyModal" role="dialog" aria-modal="true">
+  <div class="box wide">
+    <button class="x" data-close>&times;</button>
+    <h3>Invoice history</h3>
+    <div class="hist-actions">
+      <button class="btn small" id="exportCsv">Export CSV</button>
+      <button class="btn small" id="exportJson">Backup (JSON)</button>
+      <label class="btn small">Restore backup<input type="file" id="importJson" accept="application/json" hidden></label>
+    </div>
+    <div id="historyList"></div>
+    <p class="muted small" id="licenseInfo"></p>
+  </div>
+</div>
+
+<a class="jump" id="jump" href="#paper">See invoice ↓</a>
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="assets/vendor/qrcode.js"></script>
+<script src="assets/license.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
