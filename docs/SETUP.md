@@ -1,6 +1,6 @@
 # Go live: turn on payments (about 10 minutes)
 
-The site works without this, but the "Buy Pro" buttons say "Pro launching soon" until `config.js` has a checkout URL.
+The site works without this, but the "Buy Pro" buttons say "Pro launching soon" until `config.js` has a checkout URL. The structured Pro offer points to BillKit's pricing section, where the button uses `checkoutUrl`. When switching providers, change the checkout URL in `config.js`; no structured-data URL change is needed.
 
 ## Gumroad (default)
 
