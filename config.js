@@ -5,11 +5,11 @@ window.BILLKIT_CONFIG = {
 
   // Where the "Buy Pro" buttons send people (your Gumroad product URL or Dodo checkout link).
   // Leave empty until the product exists: buy buttons then show "Pro launching soon".
-  checkoutUrl: "",
+  checkoutUrl: "https://rishabhgusain.gumroad.com/l/billkit-pro",
 
   // Gumroad only: the product_id shown on the product's edit page under
   // Content -> "License key" (required to verify keys). Not used for Dodo.
-  productId: "",
+  productId: "vXbJ5h6oaOMKN-fq8Y0l4w==",
 
   // Dodo only: true while testing with Dodo's test mode keys.
   dodoTestMode: false,
