@@ -114,7 +114,7 @@ table.lines .d small{color:#64748b;display:block}
   body.app{background:#fff}
   .bar,.editor,.modal,.toast{display:none!important}
   .layout{display:block;padding:0;margin:0;max-width:none}
-  .preview-wrap{overflow:visible}
+  .preview-wrap{overflow:visible;padding:0}
   .paper{box-shadow:none;margin:0;width:210mm;min-height:296mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 @media screen and (max-width:900px){.preview-wrap .paper{zoom:.5}}
