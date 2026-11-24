@@ -32,6 +32,9 @@ textarea{resize:vertical}
 .item .del:hover{color:#dc2626}
 .gst-only,.simple-only{display:none}
 body.tax-gst .gst-only{display:block}
+body.tax-gst .row2.gst-only{display:grid}
+body.tax-none .tax-field{display:none}
+#gstWarn{font-size:13px;line-height:1.4}
 body.tax-simple .simple-only{display:block}
 body.tax-none .item .tax-field{display:none}
 body:not(.tax-gst) .item .hsn-field{display:none}
@@ -89,6 +92,8 @@ table.lines .d small{color:#64748b;display:block}
 .upi{display:flex;gap:10px;align-items:center;margin-bottom:8px}
 .upi img{width:30mm;height:30mm;image-rendering:pixelated}
 .notes{margin-top:8mm;font-size:9.5pt;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.sign{margin-top:10mm;margin-left:auto;text-align:right;font-size:9pt}
+.sign .line{margin-top:14mm;border-top:1px solid #cbd5e1;padding-top:2mm;min-width:55mm}
 .spacer{flex:1}
 .wm{margin-top:8mm;text-align:center;font-size:8pt;color:#94a3b8}
 .wm a{color:#94a3b8;text-decoration:none}

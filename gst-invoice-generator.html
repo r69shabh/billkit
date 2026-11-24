@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Free GST Invoice Generator (CGST, SGST, IGST, UPI QR) · BillKit</title>
-<meta name="description" content="Create a GST tax invoice online for free. GSTIN, HSN/SAC, place of supply, automatic CGST/SGST or IGST split, amount in words and a UPI QR. Download PDF, no signup.">
+<meta name="description" content="Create a GST tax invoice online for free. GSTIN, HSN/SAC, place of supply, CGST/SGST or IGST picked from the place of supply, amount in words and a UPI QR. Save as PDF, no signup.">
 <link rel="canonical" href="https://r69shabh.github.io/billkit/gst-invoice-generator.html">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta property="og:title" content="Free GST invoice generator with UPI QR">
@@ -16,11 +16,11 @@
 <main class="legal">
 <span class="pill">For Indian freelancers and businesses</span>
 <h1>Free GST invoice generator</h1>
-<p>Make a GST-compliant tax invoice in your browser and download it as a PDF. BillKit fills in the tax maths for you and adds a UPI QR code so your client can pay the exact amount by scanning it.</p>
+<p>Make a GST tax invoice for domestic services or goods in your browser and save it as a PDF. BillKit does the tax maths for you and adds a UPI QR code so your client can pay the exact amount by scanning it.</p>
 <p><a class="btn primary lg" href="app.html">Create a GST invoice now →</a></p>
 
 <h2>What goes on a GST tax invoice</h2>
-<p>BillKit's invoice includes each of these fields:</p>
+<p>BillKit's invoice includes each of these fields. Until your GSTIN, state, place of supply and every item's HSN/SAC are filled in, it is titled "Invoice", not "Tax Invoice", and the editor lists what is missing.</p>
 <ul>
 <li>Supplier name, address and GSTIN</li>
 <li>A unique, consecutive invoice number and the invoice date</li>
@@ -28,11 +28,13 @@
 <li>HSN code for goods or SAC code for services</li>
 <li>Quantity, rate and taxable value of each item</li>
 <li>GST rate and amount: CGST + SGST for supply within your state, IGST for supply to another state</li>
-<li>Place of supply, the total in figures and the total in words</li>
+<li>Place of supply (state name and code), the total in figures and the total in words</li>
+<li>Whether tax is payable on reverse charge, and an authorised signatory line</li>
 </ul>
 
 <h2>CGST + SGST or IGST?</h2>
-<p>If your client is in the same state as you, choose <b>CGST + SGST</b> and BillKit splits the rate in half (18% becomes 9% CGST and 9% SGST). If your client is in a different state, choose <b>IGST</b> and the full rate is charged as IGST. For exports of services, use "No tax" or 0% and add your LUT details in the notes.</p>
+<p>BillKit compares your state (taken from your GSTIN) with the place of supply. If they match, it charges <b>CGST + SGST</b> and splits the rate in half (18% becomes 9% CGST and 9% SGST). If they differ, it charges the full rate as <b>IGST</b>. You can force either one, and the editor warns you when the override doesn't match the states. Shipping or other charges are taxed at your highest item rate unless you set another rate, since freight billed with a supply usually takes the GST of that supply. For exports of services, pick "Outside India" as the place of supply, set 0% and add your LUT details in the notes.</p>
+<p>BillKit makes a normal PDF invoice. It does not generate an e-invoice (IRN/QR from the IRP), which businesses above the e-invoicing turnover limit must use. Check unusual cases with your CA.</p>
 
 <h2>Common SAC codes for freelancers</h2>
 <ul>

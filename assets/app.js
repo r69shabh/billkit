@@ -22,16 +22,20 @@
     if (/Singapore/.test(tz)) return "SGD";
     return "USD";
   }
+  var STATES = [["01","Jammu and Kashmir"],["02","Himachal Pradesh"],["03","Punjab"],["04","Chandigarh"],["05","Uttarakhand"],["06","Haryana"],["07","Delhi"],["08","Rajasthan"],["09","Uttar Pradesh"],["10","Bihar"],["11","Sikkim"],["12","Arunachal Pradesh"],["13","Nagaland"],["14","Manipur"],["15","Mizoram"],["16","Tripura"],["17","Meghalaya"],["18","Assam"],["19","West Bengal"],["20","Jharkhand"],["21","Odisha"],["22","Chhattisgarh"],["23","Madhya Pradesh"],["24","Gujarat"],["26","Dadra and Nagar Haveli and Daman and Diu"],["27","Maharashtra"],["29","Karnataka"],["30","Goa"],["31","Lakshadweep"],["32","Kerala"],["33","Tamil Nadu"],["34","Puducherry"],["35","Andaman and Nicobar Islands"],["36","Telangana"],["37","Andhra Pradesh"],["38","Ladakh"],["97","Other Territory"],["96","Outside India (export)"]];
+  function stateName(code) { for (var i = 0; i < STATES.length; i++) if (STATES[i][0] === code) return STATES[i][1]; return ""; }
+  var GSTIN_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+  function gstinOk(g) { g = String(g || "").trim().toUpperCase(); return GSTIN_RE.test(g) && !!stateName(g.slice(0, 2)) ? g : ""; }
   function blank() {
     var cur = guessCurrency();
     return {
       id: null, template: "classic", accent: COLORS[0],
-      from: { name: "", email: "", address: "", phone: "", taxId: "", logo: "" },
+      from: { name: "", email: "", address: "", phone: "", taxId: "", state: "", logo: "" },
       to: { name: "", email: "", address: "", taxId: "" },
       meta: { number: "INV-0001", date: today(), due: today(15), currency: cur, pos: "" },
-      taxMode: cur === "INR" ? "gst" : "none", gstType: "intra", taxLabel: "VAT",
+      taxMode: cur === "INR" ? "gst" : "none", gstSplit: "auto", reverseCharge: "no", taxLabel: "VAT",
       items: [{ desc: "", detail: "", hsn: "", qty: 1, rate: 0, tax: cur === "INR" ? 18 : 0 }],
-      discount: 0, discountType: "flat", shipping: 0,
+      discount: 0, discountType: "flat", shipping: 0, shipTax: "",
       upi: "", upiName: "", bank: "", notes: "Thank you for your business!", terms: ""
     };
   }
@@ -52,7 +56,38 @@
     return s;
   })();
   // fill any fields added in newer versions
-  (function migrate() { var b = blank(); Object.keys(b).forEach(function (k) { if (state[k] === undefined) state[k] = b[k]; }); })();
+  function migrate(st) {
+    var b = blank(); Object.keys(b).forEach(function (k) { if (st[k] === undefined) st[k] = b[k]; });
+    var pos = String(st.meta.pos || "");
+    if (pos && !stateName(pos)) {
+      var m = pos.match(/\b(\d{2})\b/), low = pos.toLowerCase();
+      st.meta.pos = m && stateName(m[1]) ? m[1] : (STATES.filter(function (x) { return low.indexOf(x[1].toLowerCase()) >= 0; })[0] || [""])[0];
+    }
+    if (st.from.state === undefined) st.from.state = "";
+    delete st.gstType;
+    return st;
+  }
+  migrate(state);
+
+  // GST place-of-supply logic: same state -> CGST+SGST, different state or export -> IGST.
+  function gstInfo() {
+    var s = state, supG = gstinOk(s.from.taxId), cliG = gstinOk(s.to.taxId);
+    var sup = supG ? supG.slice(0, 2) : s.from.state || "";
+    var pos = s.meta.pos || (cliG ? cliG.slice(0, 2) : "");
+    var auto = sup && pos ? (sup === pos ? "intra" : "inter") : "";
+    var kind = s.gstSplit === "intra" || s.gstSplit === "inter" ? s.gstSplit : (auto || "intra");
+    var issues = [];
+    if (!s.from.taxId) issues.push("your GSTIN");
+    else if (!supG) issues.push("a valid GSTIN for you (15 characters, e.g. 29ABCDE1234F1Z5)");
+    if (s.to.taxId && !cliG) issues.push("a valid client GSTIN (or leave it empty for an unregistered client)");
+    if (supG && s.from.state && s.from.state !== supG.slice(0, 2)) issues.push("your state to match your GSTIN (" + stateName(supG.slice(0, 2)) + ")");
+    if (!sup) issues.push("your state");
+    if (!pos) issues.push("the place of supply");
+    var noHsn = s.items.filter(function (it) { return num(it.qty) * num(it.rate) && !String(it.hsn || "").trim(); }).length;
+    if (noHsn) issues.push("HSN/SAC for " + noHsn + (noHsn > 1 ? " items" : " item"));
+    var warn = auto && kind !== auto ? "Override: your state and place of supply call for " + (auto === "intra" ? "CGST + SGST" : "IGST") + "." : "";
+    return { sup: sup, pos: pos, auto: auto, kind: kind, issues: issues, warn: warn };
+  }
 
   function fmt(n) {
     var c = state.meta.currency || "USD";
@@ -60,6 +95,11 @@
     catch (e) { return c + " " + n.toFixed(2); }
   }
 
+  // Empty = charges follow the main supply, taxed at the highest item rate.
+  function shipTaxRate() {
+    if (String(state.shipTax == null ? "" : state.shipTax).trim() !== "") return num(state.shipTax);
+    return state.items.reduce(function (m, it) { return Math.max(m, num(it.tax)); }, 0);
+  }
   function calc() {
     var sub = 0, taxRaw = 0, byRate = {};
     state.items.forEach(function (it) {
@@ -75,8 +115,13 @@
     var factor = sub ? (sub - disc) / sub : 1;
     var tax = taxRaw * factor;
     Object.keys(byRate).forEach(function (r) { byRate[r] *= factor; });
-    var total = sub - disc + tax + num(state.shipping);
-    return { sub: sub, disc: disc, tax: tax, byRate: byRate, ship: num(state.shipping), total: Math.round(total * 100) / 100 };
+    var ship = num(state.shipping), shipRate = shipTaxRate();
+    if (state.taxMode !== "none" && ship && shipRate) {
+      var st = ship * shipRate / 100; tax += st;
+      byRate[shipRate] = (byRate[shipRate] || 0) + st;
+    }
+    var total = sub - disc + ship + tax;
+    return { sub: sub, disc: disc, tax: tax, byRate: byRate, ship: ship, taxable: sub - disc + ship, total: Math.round(total * 100) / 100 };
   }
 
   // ---------- amount in words ----------
@@ -132,7 +177,15 @@
     paper.className = "paper t-" + tpl;
     paper.style.setProperty("--accent", pro ? s.accent : COLORS[0]);
 
-    var title = gst ? "Tax Invoice" : "Invoice";
+    var g = gst ? gstInfo() : null;
+    var title = gst && !g.issues.length ? "Tax Invoice" : "Invoice";
+    var gw = $("#gstWarn");
+    if (gw) {
+      gw.innerHTML = !gst ? "" : (g.issues.length ? "<b>Draft, not a Tax Invoice yet.</b> Add " + g.issues.map(esc).join(", ") + "." : "") +
+        (g.warn ? (g.issues.length ? "<br>" : "") + esc(g.warn) : "") +
+        (!g.issues.length && !g.warn ? "Tax Invoice: " + (g.kind === "intra" ? "CGST + SGST (same state)" : "IGST (" + (g.pos === "96" ? "export" : "inter-state") + ")") + "." : "");
+      gw.className = "msg" + (gst && (g.issues.length || g.warn) ? " err" : gst ? " ok" : "");
+    }
     var h = '<div class="inv-head"><div class="inv-from">';
     if (pro && s.from.logo) h += '<img class="inv-logo" src="' + esc(s.from.logo) + '" alt="">';
     h += '<div class="nm">' + esc(s.from.name || "Your Business") + '</div><div class="pre">' + esc(s.from.address) + "</div>";
@@ -145,7 +198,8 @@
     if (s.to.taxId) h += "<div><b>" + esc(taxIdName) + ":</b> " + esc(s.to.taxId) + "</div>";
     h += '</div><div class="inv-dates"><span class="k">Issue date</span><span class="v">' + esc(dateStr(s.meta.date)) + "</span>";
     if (s.meta.due) h += '<span class="k">Due date</span><span class="v">' + esc(dateStr(s.meta.due)) + "</span>";
-    if (gst && s.meta.pos) h += '<span class="k">Place of supply</span><span class="v">' + esc(s.meta.pos) + "</span>";
+    if (gst && g.pos) h += '<span class="k">Place of supply</span><span class="v">' + esc(stateName(g.pos) + " (" + g.pos + ")") + "</span>";
+    if (gst) h += '<span class="k">Reverse charge</span><span class="v">' + (s.reverseCharge === "yes" ? "Yes" : "No") + "</span>";
     h += '<span class="k">Amount due</span><span class="v">' + esc(fmt(c.total)) + "</span></div></div>";
 
     h += '<table class="lines"><thead><tr><th>#</th><th>Description</th>' + (gst ? '<th>HSN/SAC</th>' : "") +
@@ -163,10 +217,12 @@
     if (s.bank) h += '<div class="lbl">Payment details</div><div class="pre">' + esc(s.bank) + "</div>";
     h += '</div><div class="totals"><div class="ln"><span>Subtotal</span><span class="v">' + esc(fmt(c.sub)) + "</span></div>";
     if (c.disc) h += '<div class="ln"><span>Discount' + (s.discountType === "pct" ? " (" + num(s.discount) + "%)" : "") + '</span><span class="v">−' + esc(fmt(c.disc)) + "</span></div>";
+    if (c.ship) h += '<div class="ln"><span>Shipping / other' + (taxed && shipTaxRate() ? " (" + (gst ? "GST" : esc(s.taxLabel || "Tax")) + " " + shipTaxRate() + "%)" : "") + '</span><span class="v">' + esc(fmt(c.ship)) + "</span></div>";
+    if (taxed && (c.disc || c.ship)) h += '<div class="ln"><span>Taxable value</span><span class="v">' + esc(fmt(c.taxable)) + "</span></div>";
     if (taxed) {
       Object.keys(c.byRate).sort(function (a, b) { return a - b; }).forEach(function (r) {
         var t = c.byRate[r]; if (!t) return;
-        if (gst && s.gstType === "intra") {
+        if (gst && g.kind === "intra") {
           h += '<div class="ln"><span>CGST @ ' + r / 2 + '%</span><span class="v">' + esc(fmt(t / 2)) + "</span></div>";
           h += '<div class="ln"><span>SGST @ ' + r / 2 + '%</span><span class="v">' + esc(fmt(t / 2)) + "</span></div>";
         } else {
@@ -174,7 +230,6 @@
         }
       });
     }
-    if (c.ship) h += '<div class="ln"><span>Shipping / other</span><span class="v">' + esc(fmt(c.ship)) + "</span></div>";
     h += '<div class="ln grand"><span>Total</span><span class="v">' + esc(fmt(c.total)) + "</span></div>";
     var aw = amountWords(c.total); if (aw) h += '<div class="words">' + esc(aw) + "</div>";
     h += "</div></div>";
@@ -183,6 +238,7 @@
       h += '<div class="notes"><div>' + (s.notes ? '<div class="lbl">Notes</div><div class="pre">' + esc(s.notes) + "</div>" : "") + "</div><div>" +
         (s.terms ? '<div class="lbl">Terms</div><div class="pre">' + esc(s.terms) + "</div>" : "") + "</div></div>";
     }
+    if (gst) h += '<div class="sign"><div>For ' + esc(s.from.name || "Your Business") + '</div><div class="line">Authorised signatory</div></div>';
     h += '<div class="spacer"></div>';
     if (!pro) h += '<div class="wm">Made with <a href="' + esc(cfg.siteUrl || "./") + '">BillKit</a>, the free invoice generator</div>';
     paper.innerHTML = h;
@@ -191,6 +247,8 @@
 
   // ---------- editor ----------
   function bindFields() {
+    var opts = '<option value="">Select state</option>' + STATES.map(function (x) { return '<option value="' + x[0] + '">' + esc(x[1]) + " (" + x[0] + ")</option>"; }).join("");
+    $$(".state-select").forEach(function (el) { el.innerHTML = opts; });
     var cur = $("#currency");
     cur.innerHTML = CURRENCIES.map(function (c) { return "<option>" + c + "</option>"; }).join("");
     $$("[data-bind]").forEach(function (el) {
@@ -378,7 +436,7 @@
     if (!confirm("Start a new invoice? Unsaved changes to this one will be lost" + (pro ? " (use Save first to keep it)." : "."))) return;
     var b = blank(), n = nextNumber(pro ? maxNumber() : state.meta.number);
     b.from = state.from; b.upi = state.upi; b.upiName = state.upiName; b.bank = state.bank; b.terms = state.terms;
-    b.template = state.template; b.accent = state.accent; b.meta.currency = state.meta.currency; b.taxMode = state.taxMode; b.gstType = state.gstType; b.taxLabel = state.taxLabel;
+    b.template = state.template; b.accent = state.accent; b.meta.currency = state.meta.currency; b.taxMode = state.taxMode; b.gstSplit = state.gstSplit; b.shipTax = state.shipTax; b.taxLabel = state.taxLabel;
     b.items[0].tax = state.items[0] ? state.items[0].tax : 0;
     b.meta.number = n; state = b; bindValues(); changed();
   });

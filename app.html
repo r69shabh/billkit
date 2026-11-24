@@ -17,7 +17,7 @@
     <button class="btn" id="btnNew" title="Start a new invoice">New</button>
     <button class="btn" id="btnSave" title="Save to history">Save <span class="pro-tag">PRO</span></button>
     <button class="btn" id="btnHistory">History <span class="pro-tag">PRO</span></button>
-    <button class="btn primary" id="btnPdf">Download PDF</button>
+    <button class="btn primary" id="btnPdf">Print / Save PDF</button>
     <button class="btn upgrade" id="btnUpgrade">Upgrade</button>
   </div>
 </header>
@@ -73,14 +73,20 @@
           </select>
         </label>
         <label class="gst-only">GST type
-          <select data-bind="gstType">
-            <option value="intra">CGST + SGST (same state)</option>
-            <option value="inter">IGST (other state)</option>
+          <select data-bind="gstSplit">
+            <option value="auto">Auto from states</option>
+            <option value="intra">Force CGST + SGST</option>
+            <option value="inter">Force IGST</option>
           </select>
         </label>
         <label class="simple-only">Tax name<input data-bind="taxLabel" placeholder="VAT"></label>
       </div>
-      <label class="gst-only">Place of supply<input data-bind="meta.pos" placeholder="e.g. Karnataka (29)"></label>
+      <div class="row2 gst-only">
+        <label>Your state<select class="state-select" data-bind="from.state"></select></label>
+        <label>Place of supply<select class="state-select" data-bind="meta.pos"></select></label>
+      </div>
+      <label class="gst-only">Tax payable on reverse charge<select data-bind="reverseCharge"><option value="no">No</option><option value="yes">Yes</option></select></label>
+      <div class="msg gst-only" id="gstWarn"></div>
     </fieldset>
 
     <fieldset>
@@ -91,7 +97,10 @@
         <label>Discount<input type="number" step="any" min="0" data-bind="discount" data-num></label>
         <label>Discount type<select data-bind="discountType"><option value="flat">Amount</option><option value="pct">%</option></select></label>
       </div>
-      <label>Shipping / other charges<input type="number" step="any" min="0" data-bind="shipping" data-num></label>
+      <div class="row2">
+        <label>Shipping / other charges<input type="number" step="any" min="0" data-bind="shipping" data-num></label>
+        <label class="tax-field">Tax % on shipping<input type="number" step="any" min="0" data-bind="shipTax" placeholder="Same as items"></label>
+      </div>
     </fieldset>
 
     <fieldset>
