@@ -18,8 +18,8 @@ Budget is zero: free channels only, no ads, paid listings, boosts or custom doma
 - Product Hunt: schedule a launch for a Tuesday-Thursday 12:31 PM IST (00:01 PST). Tagline: "Free invoices in 60 seconds: GST, VAT, UPI QR, no signup."
 
 ## Ongoing: search
-- Submit https://r69shabh.github.io/billkit/sitemap.xml in Google Search Console (verify with the HTML-tag method by adding the meta tag to `index.html`).
-- People search "GST invoice generator", "free invoice generator no signup", "invoice with UPI QR". `gst-invoice-generator.html` targets the first one; more pages like it (for example "freelance invoice template India", "VAT invoice generator UK") are cheap to add.
+- Follow the [free indexing checklist](INDEXING.md) to verify BillKit and submit the sitemap to Google and Bing.
+- Check the queries and pages that earn impressions in both tools before adding more guides. Keep the global homepage distinct from the freelance, USD, PDF, GST and UPI pages.
 - List it on free directories: AlternativeTo (as an alternative to Zoho Invoice / Invoice Generator), SaaSHub, Uneed, Microlaunch, BetaList. Use only the free listing tier; skip paid fast-track or featured options.
 
 ## Conversion levers to try after the first 100 users

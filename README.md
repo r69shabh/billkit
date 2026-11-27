@@ -15,11 +15,13 @@ Pro is unlocked by a license key that the browser checks directly against the pa
 
 | File | What it is |
 | --- | --- |
-| `config.js` | **The only file to edit to go live**: provider, checkout URL, product id, price |
+| `config.js` | Payment provider, checkout URL, product ID and price |
 | `index.html` | Landing page with pricing and FAQ |
 | `app.html`, `assets/app.js`, `assets/app.css` | The invoice editor |
 | `assets/license.js` | License verification (Gumroad / Dodo) |
 | `gst-invoice-generator.html` | SEO page for "GST invoice generator" searches |
+| `upi-invoice.html` | INR invoice payment QR guide |
+| `freelance-invoice-template.html`, `usd-invoice.html`, `pdf-invoice-maker.html` | Invoice example and guides for international users |
 | `legal.html` | Terms, privacy, refunds |
 | `.github/workflows/pages.yml` | Deploys `main` to GitHub Pages |
 
@@ -27,5 +29,6 @@ Run locally: `python3 -m http.server 8000`, then open http://localhost:8000.
 
 - Going live with payments: [docs/SETUP.md](docs/SETUP.md)
 - Getting the first customers: [docs/LAUNCH.md](docs/LAUNCH.md)
+- Free Google and Bing indexing: [docs/INDEXING.md](docs/INDEXING.md)
 
 `assets/vendor/qrcode.js` is [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) by Kazuhiko Arase (MIT).
